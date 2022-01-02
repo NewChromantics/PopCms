@@ -152,6 +152,9 @@ function HandleAssetUrl(req,res,next)
 
 	console.log(`HandleAssetUrl Filename=${Filename}`);
 	req.url = Filename;
+	
+	res.setHeader('Access-Control-Allow-Origin',CorsOrigin);	//	allow CORS
+
 	const AssetsPath = GetAssetsDirectory();
 	ExpressModule.static(AssetsPath)(req, res, next);
 }
@@ -253,7 +256,8 @@ async function HandleResponse(Function,Request,Response)
 
 		Response.statusCode = Output.StatusCode;
 		Response.setHeader('Content-Type',Output.Mime);
-		
+		Response.setHeader('Access-Control-Allow-Origin',CorsOrigin);	//	allow CORS
+
 		Response.end(Output.Content);
 	}
 	catch (e)
