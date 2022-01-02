@@ -14,6 +14,17 @@
 	margin-right:	0.5em;
 }
 
+/* yellow if there's a ... in the error string */
+*[Error~=...]:before
+{
+	background:	#ffa;
+}
+
+#FileUpload *
+{
+	display:	block;
+}
+
 </style>
 </head>
 <body>
@@ -24,7 +35,16 @@
 <div id=LastCommit>Last Commit</div>
 <ul id=AssetFileList>Files</ul>
 
+<div id=FileUpload>
+<h1>Upload Text File</h1>
+<textarea>File Contents</textarea>
+<input type=text id=FileUploadFilename></input>
+<input type=Button id=FileUploadButton value=Upload></input>
+</div>
+
 <script type=module>
+
+import * as PopCms from './PopCms/PopCmsApi.js'
 
 function CreatePromise()
 {
@@ -63,19 +83,12 @@ async function UpdateThing(Url,Element)
 	}
 }
 
-function GetAssetUrl(Filename)
-{
-	return `/Asset/${Filename}`;
-}
 
-async function UpdateFileList(Url,Element)
+async function UpdateFileList(Element)
 {
 	try
 	{
-		const Response = await fetch(Url);
-		const Files = await Response.json();
-		if ( !Response.ok )
-			throw Response.statusText;
+		const Files = await PopCms.GetFileList();
 			
 		function FileExists(Name)
 		{
@@ -102,7 +115,7 @@ async function UpdateFileList(Url,Element)
 				continue;
 			Child = document.createElement('li');
 			Child.Filename = File.name;
-			const FileUrl = GetAssetUrl(File.name);
+			const FileUrl = PopCms.GetAssetUrl(File.name);
 			Child.innerHTML = `<a href="${FileUrl}">${File.name}</a>`;
 			Element.appendChild(Child);
 		}
@@ -119,14 +132,42 @@ async function UpdateEverything()
 {
 	while ( true )
 	{
-		await UpdateThing(`/syncstatus`,SyncStatus);
-		await UpdateThing(`/git`,GitStatus);
-		await UpdateThing(`/gitlastcommit`,LastCommit);
-		await UpdateFileList(`/List`,AssetFileList);
+		await UpdateThing(PopCms.SyncStatusUrl,SyncStatus);
+		await UpdateThing(PopCms.GitLogUrl,GitStatus);
+		await UpdateThing(PopCms.GitLastCommitUrl,LastCommit);
+		await UpdateFileList(AssetFileList);
 		await Yield(4*1000);
 	}		
 }
 UpdateEverything();
+
+function SetupUpload()
+{
+	async function DoUpload()
+	{
+		const Element = document.querySelector(`#FileUpload`);
+		try
+		{
+			Element.setAttribute('Error','Uploading...');
+			
+			const Contents = document.querySelector(`#FileUpload textarea`).value;
+			const Filename = document.querySelector(`#FileUploadFilename`).value;		
+			
+			const Commit = await PopCms.Upload(Filename,Contents);
+			console.log(Commit);
+			
+			Element.removeAttribute('Error');
+		}
+		catch(e)
+		{
+			Element.setAttribute('Error',e);
+		}
+	}
+
+	FileUploadButton.onclick = DoUpload;
+}
+SetupUpload();
+
 </script>
 
 

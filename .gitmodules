@@ -1,0 +1,3 @@
+[submodule "Browser/PopCms"]
+	path = Browser/PopCms
+	url = https://github.com/NewChromantics/PopCms.js.git

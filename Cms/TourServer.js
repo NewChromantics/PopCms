@@ -2,6 +2,7 @@ import * as Pop from './PopApi.js'
 import * as FileSystem from 'fs'
 import Git from 'nodegit'
 import Params from './Params.js'
+import Path from 'path'
 
 import Moment from "moment";
 
@@ -251,9 +252,36 @@ async function GetRepositoryFile(Filename)
 	return File;
 }
 
+
+function IsSafeFilename(Filename)
+{
+	//	check if the filename has traversed out of a folder
+	const FakeRootPath = '/Root/Path/';
+	const ResolvedPath = Path.join(FakeRootPath,Filename);
+	console.log(`ResolvedPath->${ResolvedPath}`);
+	if ( !ResolvedPath.startsWith(FakeRootPath) )
+		throw `${Filename} has path traversal ${ResolvedPath}`;	
+
+	if ( !Filename.length )
+		throw `Empty filename`;
+	
+	//	no files beginning with dot
+	if ( Filename[0] == '.' )
+		throw `Filename begins with dot`;
+		
+	//	no files beginning with dot
+	if ( Filename[0] == '/' )
+		throw `Filename begins with slash`;
+		
+	return true;
+}
+
 //	commit this file, return the new commit[struct]
 export async function CommitRepositoryFileContents(Filename,Contents,AuthorName,AuthorEmail,CommitMessage)
 {
+	IsSafeFilename(Filename);
+	
+	console.log(`CommitRepositoryFileContents`,Filename,Contents);
 	if ( SyncError )
 	{
 		//throw `Git sync error; ${SyncError}. Commit aborted`;
@@ -264,12 +292,13 @@ export async function CommitRepositoryFileContents(Filename,Contents,AuthorName,
 	const Index = await Repos.refreshIndex();
 
 	//	write file to disk
+	const FilePath = `${Params.RepositoryPath}/${Filename}`;
 	try
 	{
 		//	gr: would be great if we could skip over this and write into the index with ram
-		const FilePath = `${Params.RepositoryPath}/${Filename}`;
 		const FileParams = {};
-		FileParams.encoding = 'utf8';
+		//FileParams.encoding = 'utf8';
+		console.log(`Writing file ${FilePath}...`);
 		await FileSystem.promises.writeFile(FilePath, Contents, FileParams);
 	}
 	catch(e)
@@ -305,25 +334,6 @@ export async function CommitRepositoryFileContents(Filename,Contents,AuthorName,
 }
 
 
-
-async function CommitNewOrgStruct(OrgName,Struct)
-{
-	//	todo: double check contents?
-	if ( typeof Struct != typeof {} )
-		throw `CommitNewOrgStruct: New Org struct not object; ${Struct}`;
-
-	const AuthorName = `Editor`;
-	const AuthorEmail = `editor@tour.cms`;
-	const CommitMessage = `CommitNewOrgStruct()`;
-		
-	//	make a new file and commit to the draft branch
-	const Filename = `${OrgName}.json`;
-	const FileContents = JSON.stringify(Struct,null,'\t');
-
-	const NewCommit = await CommitRepositoryFileContents(Filename,FileContents,AuthorName,AuthorEmail,CommitMessage);
-	
-	return NewCommit;
-}
 
 
 

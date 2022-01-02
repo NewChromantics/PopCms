@@ -345,7 +345,7 @@ Request.files = {
 		mv: [Function: mv]
 	}
 }*/
-		//	gr: don't seem to be getting filename formdata through, so using a queyr param
+		//	gr: don't seem to be getting filename formdata through, so using a query param
 		const UploadedFile = Request.files.content;
 		//const AssetName = TourApi.GetNewAssetNameFromMime(AssetDirectory,UploadedFile.mimetype);
 		const AssetName = Request.query.Filename;
