@@ -1,0 +1,134 @@
+<html>
+<head>
+<style>
+
+
+*[Error]:before
+{
+	content:	attr(Error);
+	display:	inline-block;
+	color:		#fff;
+	background:	#faa;
+	padding-left:	0.5em;
+	padding-right:	0.5em;
+	margin-right:	0.5em;
+}
+
+</style>
+</head>
+<body>
+
+<h1>PopCMS</h1>
+<div id=GitStatus>Git Status</div>
+<div id=SyncStatus>Sync Status</div>
+<div id=LastCommit>Last Commit</div>
+<ul id=AssetFileList>Files</ul>
+
+<script type=module>
+
+function CreatePromise()
+{
+	let Callbacks = {};
+	let PromiseHandler = function(Resolve,Reject)
+	{
+		Callbacks.Resolve = Resolve;
+		Callbacks.Reject = Reject;
+	}
+	let Prom = new Promise(PromiseHandler);
+	Prom.Resolve = Callbacks.Resolve;
+	Prom.Reject = Callbacks.Reject;
+	return Prom;
+}
+
+async function Yield(Milliseconds)
+{
+	const Promise = CreatePromise();
+	setTimeout( Promise.Resolve, Milliseconds );
+	return Promise;
+}
+
+async function UpdateThing(Url,Element)
+{
+	try
+	{
+		const Response = await fetch(Url);
+		Element.innerText = await Response.text();
+		if ( !Response.ok )
+			throw Response.statusText;
+		Element.removeAttribute('Error');
+	}
+	catch(e)
+	{
+		Element.setAttribute('Error',e);
+	}
+}
+
+function GetAssetUrl(Filename)
+{
+	return `/Asset/${Filename}`;
+}
+
+async function UpdateFileList(Url,Element)
+{
+	try
+	{
+		const Response = await fetch(Url);
+		const Files = await Response.json();
+		if ( !Response.ok )
+			throw Response.statusText;
+			
+		function FileExists(Name)
+		{
+			return Files.some( f => f.name == Name );
+		}
+		
+		function GetChild(Name)
+		{
+			return Array.from(Element.children).find( e => e.Filename == Name );
+		}
+			
+		//	update items
+		const RemoveChildren = Array.from(Element.children).filter( e => !FileExists(e.Filename) );
+		for ( let RemoveChild of RemoveChildren )
+		{
+			Element.removeChild(RemoveChild);
+		}
+		
+		//	add missing children, update meta
+		for ( let File of Files )
+		{
+			let Child = GetChild(File.name);
+			if ( Child )
+				continue;
+			Child = document.createElement('li');
+			Child.Filename = File.name;
+			const FileUrl = GetAssetUrl(File.name);
+			Child.innerHTML = `<a href="${FileUrl}">${File.name}</a>`;
+			Element.appendChild(Child);
+		}
+
+		Element.removeAttribute('Error');
+	}
+	catch(e)
+	{
+		Element.setAttribute('Error',e);
+	}
+}
+
+async function UpdateEverything()
+{
+	while ( true )
+	{
+		await UpdateThing(`/syncstatus`,SyncStatus);
+		await UpdateThing(`/git`,GitStatus);
+		await UpdateThing(`/gitlastcommit`,LastCommit);
+		await UpdateFileList(`/List`,AssetFileList);
+		await Yield(4*1000);
+	}		
+}
+UpdateEverything();
+</script>
+
+
+</body>
+</html>
