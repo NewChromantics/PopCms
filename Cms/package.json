@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "name": "@newchromantics/xxx",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"

@@ -1,14 +1,24 @@
-const os = require( 'os' );
-const fs = require( 'fs' );
-const Pop = require('./PopApi');
-const ExpressModule = require('express');
-const TourApi = require('./TourServer');
-const Params = require('./Params').Params;
+import os from 'os'
+import fs from 'fs'
+import ExpressModule from 'express'
+import {Params} from './Params.js'
+import * as TourApi from './TourServer.js'
+import * as Pop from './PopApi.js'
+
+//	if this import errors because of the file type, make sure we run with 
+//		--experimental-json-modules
+//	ie; node --experimental-json-modules ./NodeServer.js
+//const pkg = JSON.parse(await readFile(new URL('./package.json', import.meta.url)));
+import PackageJson from './package.json'
+//	todo: work out if we can read docker's tag
+let Version = process.env.VERSION || PackageJson.version;
+console.log(`Version=${Version}`);
 
 
 //	multi-part file form support
 //	https://stackoverflow.com/questions/23114374/file-uploading-with-express-4-0-req-files-undefined
-const ExpressFileUpload = require("express-fileupload");
+import ExpressFileUpload from "express-fileupload";
+
 
 
 function ReadNumberOrNull(Key,Name)
@@ -80,7 +90,6 @@ console.log(`BrowserPath=${BrowserPath}`);
 console.log(`AssetListUrl=${AssetListUrl}`);
 console.log(`BrowserUrl=${BrowserUrl}`);
 console.log(`AssetUrl=${AssetUrl}`);
-console.log(`Params.GitPath=${Params.GitPath}`);
 
 try
 {
@@ -100,7 +109,7 @@ const HttpServerApp = ExpressModule();
 //	enable express-fileupload support
 //	https://github.com/richardgirges/express-fileupload/tree/da968ef0365eba4bad73909737700798d89d2ad7#available-options
 const FileUploadOptions = {};
-FileUploadOptions.createParentPath = true;	//	create paths with .mv()
+//FileUploadOptions.createParentPath = true;	//	create paths with .mv()
 FileUploadOptions.safeFileNames = true;
 HttpServerApp.use(ExpressFileUpload(FileUploadOptions));
 
@@ -342,24 +351,16 @@ Request.files = {
 		const AssetName = Request.query.Filename;
 		if ( AssetName === undefined )
 			throw `No Filename parameter specified`;
-		//	will throw if invalid
-		TourApi.ValidateNewAssetFilename(AssetName,AssetDirectory);
-	
-		const AssetFilePath = `${AssetDirectory}/${AssetName}`;
-		console.log(`Moving new file to ${AssetFilePath}...`);
-		try
-		{
-			await UploadedFile.mv(AssetFilePath);
-		}
-		catch(e)
-		{
-			throw `Error moving new file on server; ${e}`;
-		}
-		const Result = {};
-		Result.AssetName = AssetName;
-		Result.FilePath = AssetFilePath;
+
+		const FileContents = UploadedFile.data;
+		const AuthorName = `PopCms`;
+		const AuthorEmail = `browser@pop.cms`;
+		const CommitMessage = `UploadAssetFile(${AssetName})`;
+		const Filename = AssetName;
 		
-		const Content = JSON.stringify(Result,null,'\t');
+		const NewCommit = await TourApi.CommitRepositoryFileContents(Filename,FileContents,AuthorName,AuthorEmail,CommitMessage);
+
+		const Content = JSON.stringify(NewCommit,null,'\t');
 		return Content;
 	}
 	return HandleResponse( Run, Request, Response );
@@ -371,10 +372,6 @@ async function HandleUploadOrgStruct(Request,Response)
 {
 	async function Run(Request)
 	{
-		const OrgName = Request.params[0];
-		if ( !TourApi.IsValidOrgName(OrgName) )
-			throw `Invalid org name ${OrgName}`;
-		
 		const UploadedOrgContent = Request.body.content;
 		
 		let UploadedOrg;

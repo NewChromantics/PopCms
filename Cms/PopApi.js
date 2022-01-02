@@ -1,9 +1,10 @@
+export default 'PopApi'
 
-const Warning = console.warn;
+export const Warning = console.warn;
 
 
 //	create a promise function with the Resolve & Reject functions attached so we can call them
-function CreatePromise()
+export function CreatePromise()
 {
 	let Callbacks = {};
 	let PromiseHandler = function(Resolve,Reject)
@@ -18,7 +19,7 @@ function CreatePromise()
 }
 
 //	RandomInt(1,10)	returns 1..9
-function RandomInt(Min,MaxExclusive)
+export function RandomInt(Min,MaxExclusive)
 {
 	let Rand = Math.random();
 	const Range = MaxExclusive - Min;
@@ -30,7 +31,7 @@ function RandomInt(Min,MaxExclusive)
 	return Rand;
 }
 
-function Yield(Milliseconds)
+export function Yield(Milliseconds)
 {
 	const Promise = CreatePromise();
 	setTimeout( Promise.Resolve, Milliseconds );
@@ -40,7 +41,7 @@ function Yield(Milliseconds)
 
 //	a promise queue that manages multiple listeners
 //	gr: this is getting out of sync with the cyclic-fixing-copy in WebApi. Make it seperate!
-class PromiseQueue
+export class PromiseQueue
 {
 	constructor(DebugName='UnnamedPromiseQueue')
 	{
@@ -197,13 +198,3 @@ class PromiseQueue
 		this.FlushPending();
 	}
 }
-
-//	node.js compatible module format
-//	gr: how can I export an import with node... want to split this into multiple modules
-module.exports =
-{
-	PromiseQueue,
-	CreatePromise,
-	Yield,
-	RandomInt	//	Math.
-};

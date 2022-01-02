@@ -6,7 +6,9 @@ function CheckIsString(Value,Context)
 }
 
 
-const Params = {};
+
+export const Params = {};
+export default Params;
 
 Params.RepositoryPath = CheckIsString( process.env.ASSETS_DIR || '../Assets', 'process.env.GIT_DIR' );
 Params.DraftBranch = CheckIsString( process.env.GIT_DIR || 'main', 'process.env.GIT_DIR' );
@@ -15,11 +17,3 @@ Params.SyncDelaySecs = 60;
 Params.GitPushUsername = CheckIsString( process.env.GIT_AUTHUSER, 'process.env.GIT_AUTHUSER' );
 Params.GitPushPassword = CheckIsString( process.env.GIT_AUTHPASS, 'process.env.GIT_AUTHPASS' );
 
-//	node.js exports
-if ( module )
-{
-	module.exports =
-	{
-		Params,
-	};
-}

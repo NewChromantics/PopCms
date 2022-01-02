@@ -1,9 +1,9 @@
-const Pop = require('./PopApi');
-const FileSystem = require('fs')
-const Git = require("nodegit");
-const Params = require("./Params").Params;
+import * as Pop from './PopApi.js'
+import * as FileSystem from 'fs'
+import Git from 'nodegit'
+import Params from './Params.js'
 
-const Moment = require("moment");
+import Moment from "moment";
 
 const RemoteName = "origin";
 
@@ -16,7 +16,7 @@ let LocalRepositoryLog = [];
 let SyncError = null;
 let SyncLastDate = null;
 
-function GetLastSyncStatus()
+export function GetLastSyncStatus()
 {
 	if ( SyncError )
 		return `Sync Error: ${SyncError}`;
@@ -179,7 +179,7 @@ function DateToString(Date)
 	}
 }
 
-async function GetGitLog()
+export async function GetGitLog()
 {
 	const Repos = await GetRepository();
 	let LatestCommit = await Repos.getBranchCommit(Params.DraftBranch);
@@ -210,7 +210,7 @@ async function GetGitLog()
 
 
 
-async function GetLastGitCommit()
+export async function GetLastGitCommit()
 {
 	const Repos = await GetRepository();
 	let LatestCommit = await Repos.getBranchCommit(Params.DraftBranch);
@@ -252,7 +252,7 @@ async function GetRepositoryFile(Filename)
 }
 
 //	commit this file, return the new commit[struct]
-async function CommitRepositoryFileContents(Filename,Contents,AuthorName,AuthorEmail,CommitMessage)
+export async function CommitRepositoryFileContents(Filename,Contents,AuthorName,AuthorEmail,CommitMessage)
 {
 	if ( SyncError )
 	{
@@ -304,65 +304,6 @@ async function CommitRepositoryFileContents(Filename,Contents,AuthorName,AuthorE
 	return Commit;
 }
 
-/*
-	these are the JSON structors for output
-	Unity should be able to make matching structs for parsing
-	
-	Org.Locations[0].Name
-	Org.Locations[0].
-*/
-class OrgStruct
-{
-	constructor()
-	{
-		this.Locations = [];	//	LocationStruct
-	}
-}
-
-class LocationStruct
-{
-	constructor(Name)
-	{
-		this.Name = Name;	//	string
-		this.Trails = [];	//	TrailStruct
-		this.ThumbnailAsset = null;
-	}
-}
-
-class TrailStruct
-{
-	constructor(Name)
-	{
-		this.Name = Name;	//	string
-		this.Hotspots = [];	//	HotspotStruct (ordered?)
-		this.MapAsset = '';	//	asset name string
-	}
-}
-
-class HotspotStruct
-{
-	constructor(Name)
-	{
-		this.Name = Name;			//	string (label on map)
-		this.MarkerAsset = '';	//	asset name string
-		this.MarkerHorizontal = true;	//	floor vs wall
-		this.MapUv = [0,0];		//	gr: I would rather have this in the Trail struct along with the map...
-		this.Storys = [];		//	StoryStruct
-	}
-}
-
-class StoryStruct
-{
-	constructor()
-	{
-		this.ContentText = null;		//	gr: judging from the doc, I think this should turn into a layout, or markdown
-		this.ContentModelAsset = null;	//	asset name string
-		this.ContentVideoAsset = null;
-		this.ContentAudioAsset = null;
-		this.ContentImageAsset = null;
-	}
-}
-
 
 
 async function CommitNewOrgStruct(OrgName,Struct)
@@ -370,9 +311,6 @@ async function CommitNewOrgStruct(OrgName,Struct)
 	//	todo: double check contents?
 	if ( typeof Struct != typeof {} )
 		throw `CommitNewOrgStruct: New Org struct not object; ${Struct}`;
-	
-	if ( !IsValidOrgName(OrgName) )
-		throw `CommitNewOrgStruct: invalid org name ${OrgName}`;
 
 	const AuthorName = `Editor`;
 	const AuthorEmail = `editor@tour.cms`;
@@ -387,148 +325,6 @@ async function CommitNewOrgStruct(OrgName,Struct)
 	return NewCommit;
 }
 
-async function GetOrgStruct(OrgName)
-{
-	if ( OrgName == 'Test' )
-	{
-		const Org = MakeTestOrg();
-		return Org;
-	}
-	
-	const Filename = `${OrgName}.json`;
-	//	here we should be
-	//	- invalidating cache if neccessary
-	//	- updating cache (ie. make sure repos is up to date)
-	//	we want to avoid constantly fetching repository, 
-	//	and just get latest file. Changes should invalidate cache
-	//	it should also be making sure its fetching either
-	//	- draft (main branch)
-	//	- published (last tag)
-	//	which is another reason we should have a cache so that
-	//	repository stuff is done parallel to cache
-	
-	//	will throw if doesn't exist
-	const File = await GetRepositoryFile(Filename);
-	//throw `Invalid org ${OrgName}`;
-	try
-	{
-		const Struct = JSON.parse(File.Contents);
-		Struct.CommitMeta = File.CommitMeta;
-		return Struct;
-	}
-	catch(e)
-	{
-		throw `Corrupt org json ${Filename}; ${e}`;
-	}
-}
-
-
-function MakeTestOrg()
-{
-	const Org = new OrgStruct();
-	Org.Locations.push( MakeTestLocation1() );
-	Org.Locations.push( MakeTestLocation2() );
-	return Org;
-}
-
-function MakeTestLocation1()
-{
-	const Location = new LocationStruct('Test Location One');
-	Location.ThumbnailAsset = 'Location1Thumbnail.jpg';
-	
-	Location.Trails.push( MakeTestTrail1() );
-	return Location;	
-}
-
-	
-function MakeTestLocation2()
-{
-	const Location = new LocationStruct('Test Location Two');
-	Location.ThumbnailAsset = 'Location2Thumbnail.jpg';
-	
-	return Location;
-}
-
-	
-
-function MakeTestTrail1()
-{
-	const Trail = new TrailStruct('Trail one');
-	Trail.MapAsset = 'PirateMap.jpg';
-		
-	const Hotspot1 = new HotspotStruct('Hotspot Top left');
-	Hotspot1.MarkerAsset = 'Aruco1.png';
-	Hotspot1.MarkerHorizontal = true;
-	Hotspot1.MapUv = [0.1,0.1];
-	Hotspot1.Storys.push( MakeTestStoryVideo() );
-	Hotspot1.Storys.push( MakeTestStoryText() );
-	
-	const Hotspot2 = new HotspotStruct('Hotspot Bottom Left');
-	Hotspot2.MarkerAsset = 'Aruco2.png';
-	Hotspot2.MarkerHorizontal = false;
-	Hotspot2.MapUv = [0.1,0.9];
-	Hotspot2.Storys.push( MakeTestStoryVideo() );
-	Hotspot2.Storys.push( MakeTestStoryText() );
-	Hotspot2.Storys.push( MakeTestStoryModel() );
-	Hotspot2.Storys.push( MakeTestStoryModel() );
-	Hotspot2.Storys.push( MakeTestStoryAudio() );
-	Hotspot2.Storys.push( MakeTestStoryImageGallery() );
-	
-	const Hotspot3 = new HotspotStruct('Hotspot1');
-	Hotspot3.MarkerAsset = 'Aruco3.png';
-	Hotspot3.MarkerHorizontal = true;
-	Hotspot3.MapUv = [0.9,0.9];
-	Hotspot3.Storys.push( MakeTestStoryVideo() );
-	Hotspot3.Storys.push( MakeTestStoryModel() );
-	
-	Trail.Hotspots = [Hotspot1,Hotspot2,Hotspot3];
-	
-	return Trail;
-}
-
-
-
-function MakeTestStoryImageGallery()
-{
-	const Story = new StoryStruct();
-	Story.ContentImageAsset = 'Image1.jpg';
-	return Story;
-}
-
-function MakeTestStoryVideo()
-{
-	const Story = new StoryStruct();
-	Story.ContentVideoAsset = 'Video.mp4';
-	return Story;
-}
-
-function MakeTestStoryText()
-{
-	const Story = new StoryStruct();
-	Story.ContentText = 'Some text';
-	return Story;
-}
-
-function MakeTestStoryModel()
-{
-	const Story = new StoryStruct();
-	Story.ContentModelAsset = 'TestModel.obj';
-	return Story;
-}
-
-function MakeTestStoryAudio()
-{
-	const Story = new StoryStruct();
-	Story.ContentAudioAsset = 'TestAudio.mp3';
-	return Story;
-}
-
-function MakeTestStoryImageGallery()
-{
-	const Story = new StoryStruct();
-	Story.ContentImageAsset = 'TestImage1.jpg';
-	return Story;
-}
 
 
 function GetRandomIdent(Length=8)
@@ -639,33 +435,4 @@ function ValidateNewAssetFilename(Filename,AssetDirectory)
 		throw `Filename already used`;
 		
 	return `${PatternMatch[0]}`;
-}
-
-function IsValidOrgName(Name)
-{
-	return Name.length > 0;
-}
-
-//	node.js exports
-if ( module )
-{
-	module.exports =
-	{
-		OrgStruct,
-		LocationStruct,
-		TrailStruct,
-		HotspotStruct,
-		StoryStruct,
-		MakeTestOrg,
-		GetNewAssetName,
-		GetNewAssetNameFromMime,
-		ValidateNewAssetFilename,
-		IsValidOrgName,
-		GetOrgStruct,
-		CommitNewOrgStruct,
-		
-		GetGitLog,
-		GetLastSyncStatus,
-		GetLastGitCommit,
-	};
 }
