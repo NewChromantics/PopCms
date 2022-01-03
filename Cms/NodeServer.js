@@ -2,7 +2,7 @@ import os from 'os'
 import fs from 'fs'
 import ExpressModule from 'express'
 import {Params} from './Params.js'
-import * as TourApi from './TourServer.js'
+import * as FileApi from './FileApi.js'
 import * as Pop from './PopApi.js'
 
 //	if this import errors because of the file type, make sure we run with 
@@ -300,7 +300,7 @@ async function HandleValidateNewAssetFilename(Request,Response)
 			throw `No Filename parameter specified`;
 		
 		//	this will throw if bad
-		return TourApi.ValidateNewAssetFilename(Filename,AssetDirectory);
+		return FileApi.ValidateNewAssetFilename(Filename,AssetDirectory);
 		return 'Filename availible';
 	}
 	return HandleResponse( Run, Request, Response );
@@ -351,7 +351,7 @@ Request.files = {
 }*/
 		//	gr: don't seem to be getting filename formdata through, so using a query param
 		const UploadedFile = Request.files.content;
-		//const AssetName = TourApi.GetNewAssetNameFromMime(AssetDirectory,UploadedFile.mimetype);
+		//const AssetName = FileApi.GetNewAssetNameFromMime(AssetDirectory,UploadedFile.mimetype);
 		const AssetName = Request.query.Filename;
 		if ( AssetName === undefined )
 			throw `No Filename parameter specified`;
@@ -362,7 +362,7 @@ Request.files = {
 		const CommitMessage = `UploadAssetFile(${AssetName})`;
 		const Filename = AssetName;
 		
-		const NewCommit = await TourApi.CommitRepositoryFileContents(Filename,FileContents,AuthorName,AuthorEmail,CommitMessage);
+		const NewCommit = await FileApi.CommitRepositoryFileContents(Filename,FileContents,AuthorName,AuthorEmail,CommitMessage);
 
 		const Content = JSON.stringify(NewCommit,null,'\t');
 		return Content;
@@ -389,7 +389,7 @@ async function HandleUploadOrgStruct(Request,Response)
 			throw `Error parsing new org json; ${UploadedOrgContent}; ${e}`;
 		}
 		
-		const Meta = await TourApi.CommitNewOrgStruct(OrgName,UploadedOrg);
+		const Meta = await FileApi.CommitNewOrgStruct(OrgName,UploadedOrg);
 
 		const Result = Meta;
 		Result.Message = `Committed new org`;
@@ -406,7 +406,7 @@ async function HandleGitLog(Request,Response)
 {
 	async function Run(Request)
 	{
-		let GitLog = await TourApi.GetGitLog();
+		let GitLog = await FileApi.GetGitLog();
 		if ( typeof GitLog != typeof '' )
 			GitLog = JSON.stringify(GitLog,null,'\t');
 		return GitLog;
@@ -418,7 +418,7 @@ async function HandleSyncStatus(Request,Response)
 {
 	async function Run(Request)
 	{
-		let GitLog = await TourApi.GetLastSyncStatus();
+		let GitLog = await FileApi.GetLastSyncStatus();
 		if ( typeof GitLog != typeof '' )
 			GitLog = JSON.stringify(GitLog,null,'\t');
 		return GitLog;
@@ -430,7 +430,7 @@ async function HandleGitLastCommit(Request,Response)
 {
 	async function Run(Request)
 	{
-		let GitLog = await TourApi.GetLastGitCommit();
+		let GitLog = await FileApi.GetLastGitCommit();
 		if ( typeof GitLog != typeof '' )
 			GitLog = JSON.stringify(GitLog,null,'\t');
 		return GitLog;
